@@ -43,7 +43,19 @@ def get_main_menu_keyboard():
 
 def clear_proxy_environment():
     """Disables inherited proxy environment variables that can block Telegram API access."""
-    pass
+    for proxy_key in (
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "all_proxy",
+    ):
+        os.environ.pop(proxy_key, None)
+
+    os.environ.setdefault("NO_PROXY", "*")
+    os.environ.setdefault("no_proxy", "*")
+
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a welcome message and a persistent keyboard option."""
@@ -65,13 +77,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Displays the available visible commands for members."""
     help_text = (
-        "📘 **Member Commands**\n\n"
-        "• `/start` — shows the welcome menu\n"
-        "• `/help` — shows this help menu\n"
-        "• `/feedback` — submit feedback to the core team\n"
-        "• `/about` — learn more about the bot\n\n"
-        "• `/cancel` — cancel the current feedback session\n\n"
-        "You can also use the menu buttons below for quick access."
+    "📘 **What we Can Do For You**\n\n"
+    "• `/start` — Open the main welcome menu\n"
+    "• `/feedback` — Drop a suggestion, idea, or issue for the core team\n"
+    "• `/about` — Learn more about what we do\n"
+    "• `/cancel` — Stop your current feedback draft\n\n"
+    "💡 **Tip:** You can also tap the quick-action buttons at the bottom of your screen anytime!"
     )
     await update.message.reply_text(
         help_text,
@@ -189,7 +200,28 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Forwards an admin reply in the staff group back to the original member."""
-    pass
+    if not update.message or not update.message.reply_to_message:
+        return
+
+    replied_message_id = update.message.reply_to_message.message_id
+    submission = feedback_submissions.get(replied_message_id)
+    if not submission:
+        return
+
+    sender_chat_id = submission["sender_chat_id"]
+    response_text = update.message.text or "(reply received)"
+    await context.bot.send_message(
+        chat_id=sender_chat_id,
+        text=(
+            f"💬 **Response from the AWS Student Builder core team**\n\n"
+            f"{response_text}"
+        ),
+        parse_mode="Markdown",
+    )
+
+    # Clean up after delivering the reply.
+    feedback_submissions.pop(replied_message_id, None)
+
 
 def main():
     """Initializes and runs the Telegram bot."""
