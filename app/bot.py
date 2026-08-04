@@ -123,7 +123,69 @@ async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Processes text messages based on the user's current state."""
-    pass
+    if not update.message or not update.message.text:
+        return
+
+    text = update.message.text
+    user = update.effective_user
+    user_id = user.id
+
+    # Handle button clicks text aliases
+    if text == "📝 Submit Feedback":
+        return await feedback_command(update, context)
+    elif text == "ℹ️ About":
+        return await about_command(update, context)
+    elif text == "❓ Help":
+        return await help_command(update, context)
+
+    # Check if the user is currently in the feedback-writing state
+    if user_states.get(user_id) == WAITING_FOR_FEEDBACK:
+        # Reset state back to normal
+        user_states[user_id] = None
+
+        # Format feedback package for the admin core team
+        username_str = f"@{user.username}" if user.username else "No username"
+        admin_notification = (
+            f"📥 **New AWS Community Feedback**\n\n"
+            f"👤 **From:** {user.first_name} {user.last_name or ''} ({username_str})\n"
+            f"🆔 **User ID:** `{user_id}`\n\n"
+            f"💬 **Message:**\n{text}"
+        )
+
+        try:
+            # Forward feedback to the student builder core team group
+            if ADMIN_GROUP_ID != 0:
+                sent_message = await context.bot.send_message(
+                    chat_id=ADMIN_GROUP_ID,
+                    text=admin_notification,
+                )
+                feedback_submissions[sent_message.message_id] = {
+                    "sender_chat_id": user_id,
+                    "sender_name": user.first_name,
+                }
+
+            # Restore the standard keyboard for the user
+            reply_markup = get_main_menu_keyboard()
+
+            # Confirm submission success to the member
+            await update.message.reply_text(
+                "✅ **Thank you!** Your feedback has been successfully delivered to the AWS Student Builder core team.",
+                parse_mode="Markdown",
+                reply_markup=reply_markup,
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to forward feedback to admin group: {e}")
+            await update.message.reply_text(
+                "⚠️ Your feedback was received, but there was an error forwarding it to the team. Please try again later."
+            )
+    else:
+        # Default response if they type random text outside of feedback flow
+        await update.message.reply_text(
+            "I didn't quite catch that. Use the button below or type `/feedback` to share your thoughts with us!",
+            parse_mode="Markdown",
+        )
+
 
 async def handle_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Forwards an admin reply in the staff group back to the original member."""
