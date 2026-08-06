@@ -1,7 +1,7 @@
 # AWS SBG Community Bot
 
 A Telegram bot for the AWS Student Builder Group community that lets members submit feedback, suggestions, and issues directly to the admin/core team.
-Deploy Link: https://aws-sbg-community-bot.onrender.com
+Deploy Link: https://aws-sbg-community-bot-1.onrender.com
 
 ## What the bot does
 
@@ -64,6 +64,9 @@ pip install -r requirements.txt
 ```env
 TELEGRAM_BOT_TOKEN=your_bot_token
 ADMIN_GROUP_CHAT_ID=your_admin_group_chat_id
+WEBHOOK_URL=https://your-domain.example.com
+WEBHOOK_SECRET=your_secret_token
+PORT=8443
 ```
 
 4. Start the bot from the repository root launcher:

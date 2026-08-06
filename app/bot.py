@@ -43,18 +43,12 @@ def get_main_menu_keyboard():
 
 def clear_proxy_environment():
     """Disables inherited proxy environment variables that can block Telegram API access."""
-    for proxy_key in (
-        "HTTP_PROXY",
-        "HTTPS_PROXY",
-        "ALL_PROXY",
-        "http_proxy",
-        "https_proxy",
-        "all_proxy",
-    ):
-        os.environ.pop(proxy_key, None)
+    for key in list(os.environ):
+        if "proxy" in key.lower():
+            os.environ.pop(key, None)
 
-    os.environ.setdefault("NO_PROXY", "*")
-    os.environ.setdefault("no_proxy", "*")
+    os.environ["NO_PROXY"] = "*"
+    os.environ["no_proxy"] = "*"
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

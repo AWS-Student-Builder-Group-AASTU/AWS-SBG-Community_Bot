@@ -1,4 +1,5 @@
 import logging
+import os
 
 from telegram.ext import (
     ApplicationBuilder,
@@ -23,7 +24,7 @@ from app.bot import (
 
 
 def main():
-    """Creates the Telegram application and starts the polling loop."""
+    """Creates the Telegram application and starts it in webhook or polling mode."""
     clear_proxy_environment()
 
     if not TELEGRAM_TOKEN:
@@ -47,8 +48,22 @@ def main():
 
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-    logger.info("🤖 AWS Student Builder Feedback Bot is up and running...")
-    app.run_polling()
+    webhook_url = os.getenv("WEBHOOK_URL")
+    secret_token = os.getenv("WEBHOOK_SECRET")
+    port = int(os.getenv("PORT", "8443"))
+
+    if webhook_url:
+        logger.info("Starting Telegram bot in webhook mode...")
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            webhook_url=webhook_url,
+            secret_token=secret_token,
+            drop_pending_updates=True,
+        )
+    else:
+        logger.info("AWS Student Builder Feedback Bot is up and running...")
+        app.run_polling()
 
 
 if __name__ == "__main__":
