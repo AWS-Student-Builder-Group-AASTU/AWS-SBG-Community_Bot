@@ -21,12 +21,23 @@ class FakeMessage:
         self.text = text
         self.chat_id = chat_id
         self.reply_text_calls = []
+        self.reply_photo_calls = []
         self.reply_to_message = None
 
     async def reply_text(self, text, parse_mode=None, reply_markup=None):
         self.reply_text_calls.append(
             {
                 "text": text,
+                "parse_mode": parse_mode,
+                "reply_markup": reply_markup,
+            }
+        )
+
+    async def reply_photo(self, photo, caption=None, parse_mode=None, reply_markup=None):
+        self.reply_photo_calls.append(
+            {
+                "photo": photo,
+                "caption": caption,
                 "parse_mode": parse_mode,
                 "reply_markup": reply_markup,
             }
@@ -171,3 +182,38 @@ def test_handle_admin_reply_routes_staff_reply_back_to_original_member():
     assert "💬 **Response from the AWS Student Builder core team**" in text
     assert "Thanks for sharing this." in text
     assert 7 not in bot.feedback_submissions
+
+
+def test_start_command_sends_photo_when_logo_exists(monkeypatch):
+    update = FakeUpdate(user_id=123)
+    context = FakeContext()
+    
+    monkeypatch.setattr(os.path, "exists", lambda path: True)
+    
+    from unittest.mock import mock_open
+    m = mock_open(read_data=b"fake photo data")
+    monkeypatch.setattr("builtins.open", m)
+    
+    asyncio.run(bot.start_command(update, context))
+    
+    assert len(update.message.reply_photo_calls) == 1
+    assert "AWS SBG AASTU Support Bot!" in update.message.reply_photo_calls[0]["caption"]
+    assert "**Join our community:** @AWSAASTU" in update.message.reply_photo_calls[0]["caption"]
+    assert update.message.reply_photo_calls[0]["parse_mode"] == "Markdown"
+
+
+def test_start_command_falls_back_to_text_when_logo_missing(monkeypatch):
+    update = FakeUpdate(user_id=123)
+    context = FakeContext()
+    
+    monkeypatch.setattr(os.path, "exists", lambda path: False)
+    
+    asyncio.run(bot.start_command(update, context))
+    
+    assert len(update.message.reply_photo_calls) == 0
+    assert len(update.message.reply_text_calls) == 1
+    assert "AWS SBG AASTU Support Bot!" in update.message.reply_text_calls[0]["text"]
+    assert "**Join our community:** @AWSAASTU" in update.message.reply_text_calls[0]["text"]
+    assert update.message.reply_text_calls[0]["parse_mode"] == "Markdown"
+
+

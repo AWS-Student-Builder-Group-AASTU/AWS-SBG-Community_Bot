@@ -52,20 +52,48 @@ def clear_proxy_environment():
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends a welcome message and a persistent keyboard option."""
-    user = update.effective_user
+    """Sends a welcome message with the bot logo and a persistent keyboard option."""
     welcome_text = (
-        f"👋 Hello **{user.first_name}**!\n\n"
-        "Welcome to the **AWS Student Builder Group** Feedback Bot.\n"
+        "Welcome to the **AWS SBG AASTU Support Bot!**\n\n"
+        "✨ **What you can do here:**\n"
+        "    🤝 Support\n"
+        "    💬 Feedback\n"
+        "    💡 Suggestions\n"
+        "    📞 Contact the Team\n\n"
         "We value your opinions, feature requests, and event suggestions.\n\n"
-        "Use the menu below or type `/feedback` to share your thoughts."
+        "Use the menu below or type `/feedback` to share your thoughts.\n\n"
+        "📢 **Join our community:** @AWSAASTU"
     )
 
-    await update.message.reply_text(
-        welcome_text,
-        parse_mode="Markdown",
-        reply_markup=get_main_menu_keyboard(),
+    logo_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "assets",
+        "logo.jpg",
     )
+
+    if os.path.exists(logo_path):
+        try:
+            with open(logo_path, "rb") as photo:
+                await update.message.reply_photo(
+                    photo=photo,
+                    caption=welcome_text,
+                    parse_mode="Markdown",
+                    reply_markup=get_main_menu_keyboard(),
+                )
+        except Exception as e:
+            logger.error(f"Failed to send logo photo: {e}")
+            await update.message.reply_text(
+                welcome_text,
+                parse_mode="Markdown",
+                reply_markup=get_main_menu_keyboard(),
+            )
+    else:
+        logger.warning(f"Logo photo not found at: {logo_path}")
+        await update.message.reply_text(
+            welcome_text,
+            parse_mode="Markdown",
+            reply_markup=get_main_menu_keyboard(),
+        )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
